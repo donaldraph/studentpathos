@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { JourneyTimeline } from './components/journey/JourneyTimeline';
 import { ChatInterface } from './components/twin/ChatInterface';
 import { CelebrationAnimation } from './components/celebration/CelebrationAnimation';
+import { PortalComparison } from './components/portal/PortalComparison';
+import { CommunityInsights } from './components/analytics/CommunityInsights';
 import { useJourneyStore } from './stores/journeyStore';
-import { Sparkles, MessageCircle, BarChart3 } from 'lucide-react';
+import { Sparkles, MessageCircle, BarChart3, Layers } from 'lucide-react';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'journey' | 'chat' | 'analytics'>('journey');
+  const [activeTab, setActiveTab] = useState<'journey' | 'chat' | 'portals' | 'analytics'>('journey');
   const [celebration, setCelebration] = useState<{
     milestone: string;
     message: string;
@@ -85,6 +87,17 @@ function App() {
             AI Twin
           </button>
           <button
+            onClick={() => setActiveTab('portals')}
+            className={`px-6 py-2 rounded-md font-medium transition-colors flex items-center gap-2 ${
+              activeTab === 'portals'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            Portals
+          </button>
+          <button
             onClick={() => setActiveTab('analytics')}
             className={`px-6 py-2 rounded-md font-medium transition-colors flex items-center gap-2 ${
               activeTab === 'analytics'
@@ -102,17 +115,8 @@ function App() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         {activeTab === 'journey' && <JourneyTimeline />}
         {activeTab === 'chat' && <ChatInterface />}
-        {activeTab === 'analytics' && (
-          <div className="bg-white rounded-lg p-8 text-center">
-            <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              Community Analytics
-            </h3>
-            <p className="text-gray-600">
-              Coming soon: Insights from your AWS Student Builder Group
-            </p>
-          </div>
-        )}
+        {activeTab === 'portals' && <PortalComparison />}
+        {activeTab === 'analytics' && <CommunityInsights />}
       </main>
 
       {/* Footer */}

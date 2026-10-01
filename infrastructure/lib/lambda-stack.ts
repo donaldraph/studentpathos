@@ -52,6 +52,12 @@ export class LambdaStack extends cdk.Stack {
       resources: ['*']
     }));
 
+    // Grant Lambda invoke (for agent to call other functions)
+    lambdaRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['lambda:InvokeFunction'],
+      resources: ['*']
+    }));
+
     // Create all Lambda functions
     const lambdaFunctions = [
       // Verification tools
@@ -72,18 +78,21 @@ export class LambdaStack extends cdk.Stack {
 
       // Orchestration
       { name: 'celebration-trigger', path: 'lambda/orchestration/celebration-trigger' },
-      { name: 'verification-workflow', path: 'lambda/orchestration/verification-workflow' }
+      { name: 'verification-workflow', path: 'lambda/orchestration/verification-workflow' },
+
+      // Bedrock Agent (THE BRAIN!)
+      { name: 'bedrock-agent-converse', path: 'lambda/bedrock-agent', handler: 'converse-handler.lambda_handler', timeout: 60 }
     ];
 
     for (const fn of lambdaFunctions) {
       this.functions[fn.name] = new lambda.Function(this, `${fn.name}-function`, {
         functionName: `studentpathos-${fn.name}`,
         runtime: lambda.Runtime.PYTHON_3_12,
-        handler: 'handler.lambda_handler',
+        handler: (fn as any).handler || 'handler.lambda_handler',
         code: lambda.Code.fromAsset(path.join(__dirname, '../../', fn.path)),
         role: lambdaRole,
-        timeout: cdk.Duration.seconds(30),
-        memorySize: 512,
+        timeout: cdk.Duration.seconds((fn as any).timeout || 30),
+        memorySize: 1024, // Increased for Bedrock agent
         environment: {
           JOURNEYS_TABLE: props.journeysTable.tableName,
           CONVERSATIONS_TABLE: props.conversationsTable.tableName,

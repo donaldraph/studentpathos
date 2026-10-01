@@ -38,39 +38,70 @@ export function ChatInterface() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsTyping(true);
 
-    // TODO: Call Bedrock Agent API
-    // For now, mock response
-    setTimeout(() => {
+    try {
+      // Call REAL Bedrock Agent with context awareness!
+      const API_URL = (import.meta as any).env?.VITE_API_URL || 'https://iqs70qndul.execute-api.us-east-1.amazonaws.com/prod';
+
+      const response = await fetch(`${API_URL}/agent/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: 'demo-user-' + Math.random().toString(36).substring(7),
+          message: currentInput
+        })
+      });
+
+      const data = await response.json();
+
       const aiResponse: Message = {
         role: 'assistant',
-        content: getMockResponse(input),
+        content: data.response || 'Sorry, I had trouble understanding that. Can you rephrase?',
         timestamp: new Date().toISOString()
       };
 
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Agent error:', error);
+
+      // Fallback response if agent fails
+      const errorResponse: Message = {
+        role: 'assistant',
+        content: 'Sorry, I\'m having trouble connecting right now. Let me give you a quick answer: ' + getMockResponse(currentInput),
+        timestamp: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const getMockResponse = (query: string): string => {
     const lower = query.toLowerCase();
+
+    if (lower.includes('aws')) {
+      return 'AWS stands for Amazon Web Services - it\'s Amazon\'s cloud computing platform. For students, you get $100 in free credits to build projects!';
+    }
 
     if (lower.includes('credit') || lower.includes('$100')) {
       return 'To claim your $100 AWS credits: 1) Sign in to AWS Console 2) Go to Billing → Credits 3) Enter promo code from your student email. Takes about 2 minutes!';
     }
 
     if (lower.includes('builder center') || lower.includes('skill builder')) {
-      return 'Builder Center is for community events/hackathons. Skill Builder is for courses/labs. Console is where you actually build. They\'re different portals, I can show you a visual comparison if you upload a screenshot!';
+      return 'Builder Center is for community events/hackathons. Skill Builder is for courses/labs. Console is where you actually build. They\'re different portals!';
     }
 
     if (lower.includes('verif')) {
-      return 'Student verification usually takes 12-24 hours. Check your .edu inbox for the confirmation email. If it\'s been longer, I can help you troubleshoot!';
+      return 'Student verification usually takes 12-24 hours. Check your .edu inbox for the confirmation email.';
     }
 
-    return 'Got it! Let me help with that. Can you tell me which step you\'re on? (Account creation, email verification, profile setup, credits, or verification complete?)';
+    return 'I can help you with AWS student onboarding! Ask me about credits, verification, or which portal to use.';
   };
 
   return (

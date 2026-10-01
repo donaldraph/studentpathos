@@ -50,6 +50,10 @@ export class ApiStack extends cdk.Stack {
     this.addLambdaEndpoint(twin, 'insights', props.functions['get-community-insights'], authorizer);
     this.addLambdaEndpoint(twin, 'recommend', props.functions['recommend-next-action'], authorizer);
 
+    // AI Agent endpoint - THE REAL BRAIN!
+    const agent = this.restApi.root.addResource('agent');
+    this.addLambdaEndpoint(agent, 'chat', props.functions['bedrock-agent-converse'], authorizer, false); // No auth for demo
+
     // Workflow orchestration endpoint
     const orchestration = this.restApi.root.addResource('orchestration');
     this.addLambdaEndpoint(orchestration, 'workflow', props.functions['verification-workflow'], authorizer);
@@ -116,12 +120,15 @@ export class ApiStack extends cdk.Stack {
     resource: apigateway.Resource,
     path: string,
     fn: lambda.Function,
-    authorizer: apigateway.CognitoUserPoolsAuthorizer
+    authorizer: apigateway.CognitoUserPoolsAuthorizer,
+    requireAuth: boolean = true
   ): void {
     const endpoint = resource.addResource(path);
-    endpoint.addMethod('POST', new apigateway.LambdaIntegration(fn), {
+    const methodOptions = requireAuth ? {
       authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO
-    });
+    } : {};
+
+    endpoint.addMethod('POST', new apigateway.LambdaIntegration(fn), methodOptions);
   }
 }

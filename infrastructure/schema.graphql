@@ -1,0 +1,79 @@
+type Journey {
+  user_id: ID!
+  account_exists: Boolean
+  edu_email_verified: Boolean
+  profile_exists: Boolean
+  has_credits: Boolean
+  verified: Boolean
+  current_step: Int
+  verification_status: String
+  updated_at: AWSDateTime
+  created_at: AWSDateTime
+}
+
+type Conversation {
+  user_id: ID!
+  conversation_id: ID!
+  messages: [Message]
+  created_at: AWSDateTime
+  updated_at: AWSDateTime
+}
+
+type Message {
+  role: String!
+  content: String!
+  timestamp: AWSDateTime!
+}
+
+type Celebration {
+  user_id: ID!
+  milestone: String!
+  triggered_at: AWSDateTime!
+  celebration_data: CelebrationData
+}
+
+type CelebrationData {
+  message: String!
+  animation: String!
+  voice_text: String!
+  color_theme: String!
+}
+
+type Query {
+  getJourney(user_id: ID!): Journey
+  listConversations(user_id: ID!): [Conversation]
+}
+
+type Mutation {
+  updateJourney(user_id: ID!, updates: JourneyInput!): Journey
+  createConversation(user_id: ID!, messages: [MessageInput!]!): Conversation
+}
+
+type Subscription {
+  onJourneyUpdated(user_id: ID!): Journey
+    @aws_subscribe(mutations: ["updateJourney"])
+
+  onCelebrationTriggered(user_id: ID!): Celebration
+}
+
+input JourneyInput {
+  account_exists: Boolean
+  edu_email_verified: Boolean
+  profile_exists: Boolean
+  has_credits: Boolean
+  verified: Boolean
+  current_step: Int
+  verification_status: String
+}
+
+input MessageInput {
+  role: String!
+  content: String!
+  timestamp: AWSDateTime!
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

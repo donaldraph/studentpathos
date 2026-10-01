@@ -91,7 +91,7 @@ export class ApiStack extends cdk.Stack {
     conversationsDataSource.createResolver('ListConversationsResolver', {
       typeName: 'Query',
       fieldName: 'listConversations',
-      requestMappingTemplate: appsync.MappingTemplate.dynamoDbQuery(),
+      requestMappingTemplate: appsync.MappingTemplate.dynamoDbScanTable(),
       responseMappingTemplate: appsync.MappingTemplate.dynamoDbResultList()
     });
 

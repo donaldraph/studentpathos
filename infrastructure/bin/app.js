@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+require("source-map-support/register");
+const cdk = require("aws-cdk-lib");
+const app = new cdk.App();
+// Stacks will be added here as we build them
+// For now, just a placeholder comment
+console.log('✅ CDK App initialized - Ready for stack definitions');
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiYXBwLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiYXBwLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7OztBQUNBLHVDQUFxQztBQUNyQyxtQ0FBbUM7QUFFbkMsTUFBTSxHQUFHLEdBQUcsSUFBSSxHQUFHLENBQUMsR0FBRyxFQUFFLENBQUM7QUFFMUIsNkNBQTZDO0FBQzdDLHNDQUFzQztBQUV0QyxPQUFPLENBQUMsR0FBRyxDQUFDLHFEQUFxRCxDQUFDLENBQUMiLCJzb3VyY2VzQ29udGVudCI6WyIjIS91c3IvYmluL2VudiBub2RlXG5pbXBvcnQgJ3NvdXJjZS1tYXAtc3VwcG9ydC9yZWdpc3Rlcic7XG5pbXBvcnQgKiBhcyBjZGsgZnJvbSAnYXdzLWNkay1saWInO1xuXG5jb25zdCBhcHAgPSBuZXcgY2RrLkFwcCgpO1xuXG4vLyBTdGFja3Mgd2lsbCBiZSBhZGRlZCBoZXJlIGFzIHdlIGJ1aWxkIHRoZW1cbi8vIEZvciBub3csIGp1c3QgYSBwbGFjZWhvbGRlciBjb21tZW50XG5cbmNvbnNvbGUubG9nKCfinIUgQ0RLIEFwcCBpbml0aWFsaXplZCAtIFJlYWR5IGZvciBzdGFjayBkZWZpbml0aW9ucycpO1xuIl19

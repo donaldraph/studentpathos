@@ -55,24 +55,24 @@ export class LambdaStack extends cdk.Stack {
     // Create all Lambda functions
     const lambdaFunctions = [
       // Verification tools
-      { name: 'check-account', path: '../lambda/verification-tools/check-account' },
-      { name: 'check-credits', path: '../lambda/verification-tools/check-credits' },
-      { name: 'check-profile', path: '../lambda/verification-tools/check-profile' },
-      { name: 'check-student-status', path: '../lambda/verification-tools/check-student-status' },
+      { name: 'check-account', path: 'lambda/verification-tools/check-account' },
+      { name: 'check-credits', path: 'lambda/verification-tools/check-credits' },
+      { name: 'check-profile', path: 'lambda/verification-tools/check-profile' },
+      { name: 'check-student-status', path: 'lambda/verification-tools/check-student-status' },
 
       // Twin tools
-      { name: 'analyze-screenshot', path: '../lambda/twin-tools/analyze-screenshot' },
-      { name: 'search-knowledge-base', path: '../lambda/twin-tools/search-knowledge-base' },
-      { name: 'get-community-insights', path: '../lambda/twin-tools/get-community-insights' },
-      { name: 'recommend-next-action', path: '../lambda/twin-tools/recommend-next-action' },
+      { name: 'analyze-screenshot', path: 'lambda/twin-tools/analyze-screenshot' },
+      { name: 'search-knowledge-base', path: 'lambda/twin-tools/search-knowledge-base' },
+      { name: 'get-community-insights', path: 'lambda/twin-tools/get-community-insights' },
+      { name: 'recommend-next-action', path: 'lambda/twin-tools/recommend-next-action' },
 
       // Analytics
-      { name: 'aggregate-questions', path: '../lambda/analytics/aggregate-questions' },
-      { name: 'generate-insights', path: '../lambda/analytics/generate-insights' },
+      { name: 'aggregate-questions', path: 'lambda/analytics/aggregate-questions' },
+      { name: 'generate-insights', path: 'lambda/analytics/generate-insights' },
 
       // Orchestration
-      { name: 'celebration-trigger', path: '../lambda/orchestration/celebration-trigger' },
-      { name: 'verification-workflow', path: '../lambda/orchestration/verification-workflow' }
+      { name: 'celebration-trigger', path: 'lambda/orchestration/celebration-trigger' },
+      { name: 'verification-workflow', path: 'lambda/orchestration/verification-workflow' }
     ];
 
     for (const fn of lambdaFunctions) {
@@ -80,7 +80,7 @@ export class LambdaStack extends cdk.Stack {
         functionName: `studentpathos-${fn.name}`,
         runtime: lambda.Runtime.PYTHON_3_12,
         handler: 'handler.lambda_handler',
-        code: lambda.Code.fromAsset(path.join(__dirname, fn.path)),
+        code: lambda.Code.fromAsset(path.join(__dirname, '../../', fn.path)),
         role: lambdaRole,
         timeout: cdk.Duration.seconds(30),
         memorySize: 512,

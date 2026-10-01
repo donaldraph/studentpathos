@@ -15,11 +15,11 @@ It's an AI companion that:
 - Celebrates when you hit milestones
 - Learns from all students collectively
 
-The result? What used to take 3 hours now takes 18 minutes on average.
+The result? What used to take 3 hours now takes 20 minutes on average.
 
 ## Why I Built This
 
-I lead the AWS Student Builder Group at Unizik (University of Nigeria, Nsukka). Every day I answer the same questions from my community:
+I lead the AWS Student Builder Group at Nnamdi Azikiwe University(UNIZIK). Every day I answer the same questions from my community:
 - "What's the difference between Builder Center and Skill Builder?"
 - "How do I claim my $100 credits?"
 - "My verification is pending, what now?"

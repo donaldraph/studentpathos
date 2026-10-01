@@ -52,9 +52,21 @@ Built entirely with Claude Code (via Kiro) connected to AWS.
 
 The AI learns from everyone. If 50 students ask about portal differences this week, the system recommends AWS update those docs.
 
+## 🌐 Live Site
+
+**StudentPathOS is now LIVE on AWS!**
+
+👉 **http://studentpathos-frontend-1790885799.s3-website-us-east-1.amazonaws.com** 👈
+
+Try it now:
+- View the journey timeline
+- Chat with the AI twin
+- See portal comparisons
+- Check community insights
+
 ## Build Status
 
-🎉 **100% Complete** - Production-ready, ready to deploy!
+🎉 **100% Complete** - Deployed and live!
 
 See [BUILD_STATUS.md](./BUILD_STATUS.md) for detailed progress.
 

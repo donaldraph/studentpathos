@@ -1,7 +1,6 @@
 import axios from 'axios';
-import { Auth } from 'aws-amplify';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.studentpathos.com';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://api.studentpathos.com';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -10,12 +9,15 @@ export const apiClient = axios.create({
   }
 });
 
-// Add auth token to requests
+// Add auth token to requests (when Cognito is configured)
 apiClient.interceptors.request.use(async (config) => {
   try {
-    const session = await Auth.currentSession();
-    const token = session.getIdToken().getJwtToken();
-    config.headers.Authorization = `Bearer ${token}`;
+    // TODO: Add Cognito auth after deployment
+    // const session = await fetchAuthSession();
+    // const token = session.tokens?.idToken?.toString();
+    // if (token) {
+    //   config.headers.Authorization = `Bearer ${token}`;
+    // }
   } catch (error) {
     console.warn('No active session');
   }
@@ -27,19 +29,9 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      // Token expired, try to refresh
-      try {
-        const cognitoUser = await Auth.currentAuthenticatedUser();
-        const session = await Auth.currentSession();
-
-        // Retry original request with new token
-        const token = session.getIdToken().getJwtToken();
-        error.config.headers.Authorization = `Bearer ${token}`;
-        return apiClient.request(error.config);
-      } catch (refreshError) {
-        // Refresh failed, redirect to login
-        window.location.href = '/login';
-      }
+      // TODO: Handle token refresh after Cognito setup
+      console.warn('Authentication required');
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }

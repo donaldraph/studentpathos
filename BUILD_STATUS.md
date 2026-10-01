@@ -68,12 +68,12 @@ All commits properly attributed to donaldraph with human-style messages.
 - ⏳ Real-time AppSync subscriptions (GraphQL schema ready, hooks pending)
 
 ### Documentation & Deployment ✅
-- ✅ Complete README.md (updated with 75% progress)
+- ✅ Complete README.md (with Bedrock meta-layer emphasis)
 - ✅ ARCHITECTURE.md (full system design, diagrams)
 - ✅ DEPLOYMENT.md (complete deployment guide)
+- ✅ CODING_AGENT_PROOF.md (comprehensive evidence for hackathon)
 - ⏳ Deploy to AWS (infrastructure ready, pending `cdk deploy`)
 - ⏳ Create demo video (components ready to demo)
-- ✅ Coding agent proof (Git commits show "built with claude code")
 
 ---
 
@@ -153,13 +153,14 @@ Estimated remaining work: **6-7 days** (as per original plan)
 
 ## 📊 BUILD METRICS
 
-- **Total commits:** 9
-- **Lines of code:** ~6,200
+- **Total commits:** 12
+- **Lines of code:** ~6,550
 - **Lambda functions:** 12/12 (100%) ✅
 - **Infrastructure:** 4/4 stacks (100%) ✅
 - **Frontend components:** 8/9 (89%) ✅
-- **Documentation:** 3/3 files (100%) ✅
-- **Overall completion:** ~90%
+- **Documentation:** 4/4 files (100%) ✅
+- **CDK Verified:** `cdk synth` passes ✅
+- **Overall completion:** ~95%
 
 ---
 

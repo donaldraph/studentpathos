@@ -82,87 +82,26 @@ export function PortalComparison() {
         const raw = await resp.json();
         const data = raw?.body ? JSON.parse(raw.body) : raw;
 
-        const portal = data.portal_type || 'Unknown Portal';
+        const portal = data.portal_type || 'Unknown';
         const confidence = data.confidence || 0;
-        const texts = (data.detected_text || []).slice(0, 5).join(', ');
+        const guide = data.guide;
 
-        const aiDescription = data.ai_description || '';
-
-        let summary = `This looks like ${portal}`;
+        let summary = `${portal}`;
         if (confidence > 0) summary += ` (${confidence}% confidence)`;
-        summary += '.';
-        if (aiDescription) {
-          summary += ` ${aiDescription}`;
-        } else if (texts) {
-          summary += ` Detected text: ${texts}.`;
-        }
 
-        const guides: Record<string, { what: string; steps: string[]; link?: string }> = {
-          'AWS Builder Center': {
-            what: 'This is the community hub for AWS students.',
-            steps: [
-              'Create your Builder profile if you haven\'t already',
-              'Go to Student Rewards to verify your student status and claim Skill Builder Premium',
-              'Browse upcoming hackathons and events you can join',
-              'Find your university\'s Student Builder Group'
-            ],
-            link: 'https://builder.aws.com/student-rewards'
-          },
-          'AWS Skill Builder': {
-            what: 'This is the training platform with courses, labs, and certification prep.',
-            steps: [
-              'Check your subscription status -- students get Premium free through Student Rewards',
-              'Start with a Learning Path for your goal (e.g. Cloud Practitioner certification)',
-              'Try a hands-on lab to get real AWS experience without worrying about costs',
-              'Use exam prep courses if you\'re planning to take an AWS certification'
-            ],
-            link: 'https://billing.skillbuilder.aws/subscriptions'
-          },
-          'AWS Management Console': {
-            what: 'This is where you actually build and manage AWS resources.',
-            steps: [
-              'Use the search bar at top to find any AWS service (try "S3" or "Lambda")',
-              'Check the Billing Dashboard to monitor your credit usage',
-              'Try launching a simple service like S3 bucket or Lambda function to get started',
-              'Pin your most-used services to the favorites bar for quick access'
-            ],
-            link: 'https://console.aws.amazon.com'
-          },
-          'AWS Documentation': {
-            what: 'This is the AWS docs site with reference guides, tutorials, and API docs.',
-            steps: [
-              'Use "Search in this guide" for specific topics within the current service docs',
-              'Check "Get Started" in the top nav for beginner-friendly tutorials',
-              'Look for "Hands-on tutorials" sections which walk you through real examples',
-              'Bookmark the User Guide for services you use often'
-            ],
-            link: 'https://docs.aws.amazon.com'
-          },
-          'AWS Sign-in Page': {
-            what: 'You are at the AWS sign-in page.',
-            steps: [
-              'Use "Root user" if this is your personal AWS account',
-              'Use "IAM user" if your organization gave you credentials',
-              'If you don\'t have an account yet, go to builder.aws.com first to sign up as a student',
-              'Forgot your password? Use the reset link -- don\'t create a new account'
-            ]
-          },
-          'Chat / Messaging Interface': {
-            what: 'This is a chat or messaging app, not an AWS portal.',
-            steps: [
-              'If you meant to upload an AWS portal screenshot, try again with a screenshot of the actual portal page'
-            ]
-          }
-        };
-
-        const guide = guides[portal];
         if (guide) {
-          summary += ` ${guide.what}`;
-          summary += '\n\nWhat you can do here:\n';
-          summary += guide.steps.map((s, i) => `${i + 1}. ${s}`).join('\n');
-          if (guide.link) {
-            summary += `\n\nDirect link: ${guide.link}`;
+          if (guide.what_this_is) summary += `\n\n${guide.what_this_is}`;
+          if (guide.what_you_see) summary += `\n\nWhat you're looking at:\n${guide.what_you_see}`;
+          if (guide.what_you_can_do?.length) {
+            summary += '\n\nWhat you can do here:';
+            guide.what_you_can_do.forEach((step: string, i: number) => {
+              summary += `\n${i + 1}. ${step}`;
+            });
           }
+          if (guide.next_step) summary += `\n\nRecommended next step: ${guide.next_step}`;
+        } else {
+          const texts = (data.detected_text || []).slice(0, 5).join(', ');
+          if (texts) summary += `\n\nDetected text: ${texts}`;
         }
 
         setAnalysisResult(summary);
@@ -224,7 +163,7 @@ export function PortalComparison() {
                 {isAnalyzing ? (
                   <div className="flex items-center gap-2 text-blue-600">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span>Analyzing with Amazon Rekognition...</span>
+                    <span>Analyzing your screenshot...</span>
                   </div>
                 ) : (
                   <p className="text-gray-700 whitespace-pre-line text-sm leading-relaxed">{analysisResult}</p>

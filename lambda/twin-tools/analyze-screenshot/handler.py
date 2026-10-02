@@ -63,21 +63,26 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         all_text = ' '.join(detected_texts).lower()
         label_names = [l['name'].lower() for l in detected_labels]
 
+        # Rekognition gives fast text/label detection
+        # Bedrock gives intelligent contextual analysis of the actual page
         portal_type, confidence = classify_screenshot(all_text, label_names, detected_texts)
-        analysis_service = 'Amazon Rekognition'
-        ai_description = None
+        analysis_service = 'Amazon Rekognition + Bedrock Vision'
+        guide = None
 
-        # If Rekognition scoring is low or unknown, ask Bedrock to look at the image
-        if confidence < 60 and image_bytes:
-            try:
-                ai_result = analyze_with_bedrock(image_bytes)
-                if ai_result:
-                    portal_type = ai_result.get('portal_type', portal_type)
-                    confidence = ai_result.get('confidence', confidence)
-                    ai_description = ai_result.get('description', '')
-                    analysis_service = 'Amazon Rekognition + Bedrock Vision'
-            except Exception as e:
-                print(f"Bedrock vision fallback error: {str(e)}")
+        try:
+            ai_result = analyze_with_bedrock(image_bytes)
+            if ai_result:
+                portal_type = ai_result.get('page_name', portal_type)
+                confidence = ai_result.get('confidence', confidence)
+                guide = {
+                    'what_this_is': ai_result.get('what_this_is', ''),
+                    'what_you_see': ai_result.get('what_you_see', ''),
+                    'what_you_can_do': ai_result.get('what_you_can_do', []),
+                    'next_step': ai_result.get('next_step', '')
+                }
+        except Exception as e:
+            print(f"Bedrock vision error: {str(e)}")
+            analysis_service = 'Amazon Rekognition'
 
         result = {
             'portal_type': portal_type,
@@ -87,8 +92,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'text_count': len(detected_texts),
             'analysis_service': analysis_service
         }
-        if ai_description:
-            result['ai_description'] = ai_description
+        if guide:
+            result['guide'] = guide
 
         return {
             'statusCode': 200,
@@ -207,9 +212,23 @@ def classify_screenshot(all_text: str, label_names: list, raw_lines: list) -> tu
 
 def analyze_with_bedrock(image_bytes: bytes) -> dict:
     """
-    Use Bedrock multimodal to analyze screenshots that Rekognition scoring can't classify.
-    The model sees the actual image and reasons about what page/portal it is.
+    Use Bedrock multimodal to analyze the screenshot and give contextual guidance
+    specific to what's actually visible on screen.
     """
+    prompt = """Look at this screenshot carefully and tell me exactly what page this is and what the user can do here.
+
+Respond in JSON only with these fields:
+{
+  "page_name": "specific name of the page (e.g. 'AWS Health Documentation', 'EC2 Dashboard', 'S3 Bucket List', 'AWS Builder Center - Student Rewards')",
+  "confidence": 0-100,
+  "what_this_is": "one sentence explaining what this specific page is about",
+  "what_you_see": "describe the key elements visible on this page -- what sections, buttons, or information is showing",
+  "what_you_can_do": ["list 3-5 specific actions the user can take on THIS page based on what you see"],
+  "next_step": "the single most important thing a student new to AWS should do on this page"
+}
+
+Be specific to what you actually see. Do not give generic AWS advice. If you see an article about AWS Health, tell them what they can learn about AWS Health on this page. If you see the EC2 launch wizard, tell them what instance settings they need to fill in. Base everything on the actual screenshot content."""
+
     response = bedrock.converse(
         modelId='us.anthropic.claude-sonnet-4-6',
         messages=[{
@@ -221,22 +240,13 @@ def analyze_with_bedrock(image_bytes: bytes) -> dict:
                         'source': {'bytes': image_bytes}
                     }
                 },
-                {
-                    'text': (
-                        'What AWS page or portal is shown in this screenshot? '
-                        'Respond in JSON only: {"portal_type": "name of the page/portal", '
-                        '"confidence": 0-100, "description": "one sentence describing what '
-                        'this page is and what the user can do here"}. '
-                        'If this is not an AWS page, say what it actually is.'
-                    )
-                }
+                {'text': prompt}
             ]
         }],
-        inferenceConfig={'maxTokens': 300, 'temperature': 0}
+        inferenceConfig={'maxTokens': 600, 'temperature': 0}
     )
 
     text = response['output']['message']['content'][0]['text']
-    # Extract JSON from the response (model might wrap it in markdown)
     if '{' in text:
         json_str = text[text.index('{'):text.rindex('}') + 1]
         return json.loads(json_str)

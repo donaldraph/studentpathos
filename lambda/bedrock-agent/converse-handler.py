@@ -47,6 +47,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if not user_message:
             return {
                 'statusCode': 400,
+                'headers': {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Content-Type': 'application/json'
+                },
                 'body': json.dumps({'error': 'Message required'})
             }
 
@@ -116,6 +122,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         return {
             'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Content-Type': 'application/json'
+            },
             'body': json.dumps({
                 'response': assistant_text,
                 'user_id': user_id,
@@ -128,6 +140,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Content-Type': 'application/json'
+            },
             'body': json.dumps({'error': str(e)})
         }
 

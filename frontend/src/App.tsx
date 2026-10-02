@@ -141,7 +141,7 @@ function App() {
               {[
                 { step: 1, label: 'I signed up on AWS Builder Center', done: journey?.builder_profile_created, url: 'https://builder.aws.com' },
                 { step: 2, label: 'I verified my student status', done: journey?.student_verified },
-                { step: 3, label: 'I claimed Skill Builder Premium', done: journey?.skillbuilder_claimed, url: 'https://builder.aws.com/student-rewards' },
+                { step: 3, label: 'I claimed Skill Builder Premium', done: journey?.skillbuilder_claimed, url: 'https://billing.skillbuilder.aws/subscriptions' },
                 { step: 4, label: 'I created my AWS Console account', done: journey?.console_account_created, url: 'https://console.aws.amazon.com' },
                 { step: 5, label: 'I am ready to build!', done: journey?.fully_onboarded },
               ].map(({ step, label, done, url }) => (

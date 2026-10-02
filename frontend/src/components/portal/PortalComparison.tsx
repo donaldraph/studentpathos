@@ -85,19 +85,25 @@ export function PortalComparison() {
         const portal = data.portal_type || 'Unknown Portal';
         const confidence = data.confidence || 0;
         const texts = (data.detected_text || []).slice(0, 5).join(', ');
-        const labels = (data.detected_labels || []).map((l: any) => l.name || l).slice(0, 5).join(', ');
+
+        const aiDescription = data.ai_description || '';
 
         let summary = `This looks like ${portal}`;
         if (confidence > 0) summary += ` (${confidence}% confidence)`;
         summary += '.';
-        if (texts) summary += ` Detected text: ${texts}.`;
-        if (labels) summary += ` Scene labels: ${labels}.`;
+        if (aiDescription) {
+          summary += ` ${aiDescription}`;
+        } else if (texts) {
+          summary += ` Detected text: ${texts}.`;
+        }
 
         const tips: Record<string, string> = {
           'AWS Builder Center': ' This is the community hub -- great for finding student groups, hackathons, and claiming student rewards.',
           'AWS Skill Builder': ' This is the training platform -- browse courses, hands-on labs, and certification prep here.',
           'AWS Management Console': ' This is where you build. You can launch services like EC2, S3, Lambda, and more from here.',
-          'AWS Sign-in Page': ' You are at the sign-in page. Use your AWS account credentials to log in.'
+          'AWS Documentation': ' This is the AWS docs site -- reference guides, tutorials, and API docs for all AWS services.',
+          'AWS Sign-in Page': ' You are at the sign-in page. Use your AWS account credentials to log in.',
+          'Chat / Messaging Interface': ' This looks like a chat or messaging app, not an AWS portal.'
         };
         summary += tips[portal] || '';
 

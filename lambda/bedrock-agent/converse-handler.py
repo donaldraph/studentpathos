@@ -9,7 +9,7 @@ dynamodb = boto3.resource('dynamodb')
 lambda_client = boto3.client('lambda')
 
 # Agent configuration
-MODEL_ID = 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+MODEL_ID = 'anthropic.claude-sonnet-4-6'  # Claude Sonnet 4.6 - Latest!
 SYSTEM_PROMPT = """You are the StudentPathOS AI Twin - a helpful, context-aware assistant that guides AWS students through their onboarding journey.
 
 Your role:
@@ -35,8 +35,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Implements the agentic loop: Reasoning → Tool Selection → Execution → Context Update
     """
     try:
-        user_id = event.get('user_id', 'anonymous')
-        user_message = event.get('message', '')
+        # Parse body if coming from API Gateway
+        if 'body' in event:
+            body = json.loads(event['body']) if isinstance(event['body'], str) else event['body']
+        else:
+            body = event
+
+        user_id = body.get('user_id', 'anonymous')
+        user_message = body.get('message', '')
 
         if not user_message:
             return {
@@ -47,10 +53,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Load conversation history from DynamoDB
         conversation_history = load_conversation_history(user_id)
 
-        # Add user message to history
+        # Add user message to history (Converse API requires content as list)
         conversation_history.append({
             'role': 'user',
-            'content': user_message
+            'content': [{'text': user_message}]
         })
 
         # Bedrock Converse API with tool use

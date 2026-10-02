@@ -12,8 +12,13 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Identifies which AWS portal the screenshot shows.
     """
     try:
-        image_data = event.get('image_base64')
-        image_url = event.get('image_url')
+        if 'body' in event:
+            body = json.loads(event['body']) if isinstance(event['body'], str) else event['body']
+        else:
+            body = event
+
+        image_data = body.get('image_base64')
+        image_url = body.get('image_url')
 
         image_bytes = None
 

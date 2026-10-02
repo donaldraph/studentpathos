@@ -61,19 +61,55 @@ export function PortalComparison() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Create preview
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setUploadedImage(reader.result as string);
+    reader.onloadend = async () => {
+      const dataUrl = reader.result as string;
+      setUploadedImage(dataUrl);
+      setIsAnalyzing(true);
+      setAnalysisResult(null);
+
+      try {
+        const base64 = dataUrl.split(',')[1];
+        const API_URL = 'https://iqs70qndul.execute-api.us-east-1.amazonaws.com/prod';
+        const resp = await fetch(`${API_URL}/twin/screenshot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: base64 })
+        });
+
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const raw = await resp.json();
+        const data = raw?.body ? JSON.parse(raw.body) : raw;
+
+        const portal = data.portal_type || 'Unknown Portal';
+        const confidence = data.confidence || 0;
+        const texts = (data.detected_text || []).slice(0, 5).join(', ');
+        const labels = (data.detected_labels || []).map((l: any) => l.name || l).slice(0, 5).join(', ');
+
+        let summary = `This looks like ${portal}`;
+        if (confidence > 0) summary += ` (${confidence}% confidence)`;
+        summary += '.';
+        if (texts) summary += ` Detected text: ${texts}.`;
+        if (labels) summary += ` Scene labels: ${labels}.`;
+
+        const tips: Record<string, string> = {
+          'AWS Builder Center': ' This is the community hub -- great for finding student groups, hackathons, and claiming student rewards.',
+          'AWS Skill Builder': ' This is the training platform -- browse courses, hands-on labs, and certification prep here.',
+          'AWS Management Console': ' This is where you build. You can launch services like EC2, S3, Lambda, and more from here.',
+          'AWS Sign-in Page': ' You are at the sign-in page. Use your AWS account credentials to log in.'
+        };
+        summary += tips[portal] || '';
+
+        setAnalysisResult(summary);
+      } catch (err) {
+        console.error('Screenshot analysis error:', err);
+        setAnalysisResult('Could not analyze the screenshot right now. Please try again in a moment.');
+      } finally {
+        setIsAnalyzing(false);
+      }
     };
     reader.readAsDataURL(file);
-
-    // Mock analysis (would call Lambda with Claude Vision)
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      setAnalysisResult('This looks like the AWS Builder Center! You\'re in the community portal where you can join student groups and hackathons.');
-      setIsAnalyzing(false);
-    }, 2000);
   };
 
   return (
@@ -124,7 +160,7 @@ export function PortalComparison() {
                 {isAnalyzing ? (
                   <div className="flex items-center gap-2 text-blue-600">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span>Analyzing with Claude Vision...</span>
+                    <span>Analyzing with Amazon Rekognition...</span>
                   </div>
                 ) : (
                   <p className="text-gray-700">{analysisResult}</p>

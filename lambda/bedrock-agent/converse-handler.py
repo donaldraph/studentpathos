@@ -6,10 +6,13 @@ import urllib.parse
 import re
 from typing import Dict, Any, List
 from datetime import datetime
+from decimal import Decimal
 
 bedrock = boto3.client('bedrock-runtime', region_name='us-east-1')
 dynamodb = boto3.resource('dynamodb')
 lambda_client = boto3.client('lambda')
+
+MAX_TOOL_ROUNDS = 5
 
 # Agent configuration
 MODEL_ID = 'us.anthropic.claude-sonnet-4-6'  # Claude Sonnet 4.6 via US inference profile
@@ -56,12 +59,19 @@ Students join through AWS Builder Center after signing up. Only mention specific
 
 ## Available Tools
 - web_search: Search the internet for information you don't have. USE THIS for any question about specific universities, current events, specific programs, or anything you're not 100% sure about.
+- crawl_url: After searching, if you find a relevant URL in the results, use this to read the full page content. This gives you much deeper information than search snippets alone. Use it to get details like leadership, events, contact info, etc.
 - check_account: Check if specific AWS account exists (only if student provides email)
 - check_credits: Check credit balance (only if student provides user ID)
 - check_profile: Verify Builder Center profile status (only if student provides user ID)
 - check_student_status: Check student verification status (only if student provides user ID)
 
-IMPORTANT: When you don't know something specific, SEARCH for it. Never make up information."""
+## Conversation Context
+You have access to the full conversation history. When the student asks a follow-up question like "who leads it?" or "tell me more", refer back to earlier messages to understand what "it" or "the chapter" refers to. Never ask the student to repeat context they already gave you.
+
+## Agentic Workflow
+You can use multiple tools in sequence. For example: search first, then crawl the most relevant URLs from the results to get comprehensive information. Do not settle for shallow answers when deeper information is available.
+
+IMPORTANT: When you don't know something specific, SEARCH for it. When search results point to useful pages, CRAWL them for full details. Never make up information."""
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -99,53 +109,30 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'content': [{'text': user_message}]
         })
 
-        # Bedrock Converse API with tool use
-        response = bedrock.converse(
-            modelId=MODEL_ID,
-            messages=conversation_history,
-            system=[{'text': SYSTEM_PROMPT}],
-            toolConfig={
-                'tools': get_tool_definitions()
-            },
-            inferenceConfig={
-                'maxTokens': 2048,
-                'temperature': 0.7
-            }
-        )
-
-        # Process response and handle tool calls
-        stop_reason = response['stopReason']
-        output_message = response['output']['message']
-
-        if stop_reason == 'tool_use':
-            # Agent wants to use tools - execute them
-            tool_results = execute_tools(output_message['content'])
-
-            # Add tool results back to conversation
-            conversation_history.append(output_message)
-            conversation_history.append({
-                'role': 'user',
-                'content': tool_results
-            })
-
-            # Get final response after tool execution
-            # toolConfig required because conversation now contains tool blocks
-            final_response = bedrock.converse(
+        # Agentic loop: keep calling Bedrock until it stops requesting tools
+        tools_used_count = 0
+        for round_num in range(MAX_TOOL_ROUNDS + 1):
+            response = bedrock.converse(
                 modelId=MODEL_ID,
                 messages=conversation_history,
                 system=[{'text': SYSTEM_PROMPT}],
-                toolConfig={
-                    'tools': get_tool_definitions()
-                },
-                inferenceConfig={
-                    'maxTokens': 2048,
-                    'temperature': 0.7
-                }
+                toolConfig={'tools': get_tool_definitions()},
+                inferenceConfig={'maxTokens': 2048, 'temperature': 0.7}
             )
 
-            assistant_message = final_response['output']['message']
-        else:
-            assistant_message = output_message
+            stop_reason = response['stopReason']
+            output_message = response['output']['message']
+
+            if stop_reason != 'tool_use' or round_num == MAX_TOOL_ROUNDS:
+                break
+
+            tool_results = execute_tools(output_message['content'])
+            tools_used_count += len([b for b in output_message['content'] if 'toolUse' in b])
+
+            conversation_history.append(output_message)
+            conversation_history.append({'role': 'user', 'content': tool_results})
+
+        assistant_message = output_message
 
         # Extract text response
         assistant_text = ''
@@ -170,7 +157,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'response': assistant_text,
                 'user_id': user_id,
                 'model': MODEL_ID,
-                'tools_used': stop_reason == 'tool_use'
+                'tools_used': tools_used_count > 0,
+                'tool_rounds': tools_used_count
             })
         }
 
@@ -280,6 +268,24 @@ def get_tool_definitions() -> List[Dict]:
                     }
                 }
             }
+        },
+        {
+            'toolSpec': {
+                'name': 'crawl_url',
+                'description': 'Crawl a specific URL to read its full page content. Use this AFTER web_search when you find a relevant URL and need deeper details from that page. For example, search first, then crawl the most promising result URLs.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'url': {
+                                'type': 'string',
+                                'description': 'The URL to crawl and extract content from'
+                            }
+                        },
+                        'required': ['url']
+                    }
+                }
+            }
         }
     ]
 
@@ -296,13 +302,22 @@ def execute_tools(content_blocks: List[Dict]) -> List[Dict]:
 
             print(f"Executing tool: {tool_name} with input: {tool_input}")
 
-            # Handle web_search directly in this Lambda
             if tool_name == 'web_search':
                 search_result = do_web_search(tool_input.get('query', ''))
                 tool_results.append({
                     'toolResult': {
                         'toolUseId': tool_use['toolUseId'],
                         'content': [{'json': search_result}]
+                    }
+                })
+                continue
+
+            if tool_name == 'crawl_url':
+                crawl_result = do_crawl_url(tool_input.get('url', ''))
+                tool_results.append({
+                    'toolResult': {
+                        'toolUseId': tool_use['toolUseId'],
+                        'content': [{'json': crawl_result}]
                     }
                 })
                 continue
@@ -400,8 +415,62 @@ def do_web_search(query: str) -> Dict[str, Any]:
         }
 
 
+def do_crawl_url(url: str) -> Dict[str, Any]:
+    """Crawl a URL using Exa's contents endpoint to get full page text."""
+    exa_key = os.environ.get('EXA_API_KEY', '')
+    if not exa_key:
+        return {'url': url, 'success': False, 'error': 'EXA_API_KEY not configured'}
+
+    try:
+        payload = json.dumps({
+            'urls': [url],
+            'text': {'maxCharacters': 3000},
+            'highlights': True
+        }).encode('utf-8')
+
+        req = urllib.request.Request(
+            'https://api.exa.ai/contents',
+            data=payload,
+            headers={
+                'x-api-key': exa_key,
+                'Content-Type': 'application/json'
+            },
+            method='POST'
+        )
+
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+
+        results = data.get('results', [])
+        if results:
+            r = results[0]
+            return {
+                'url': url,
+                'success': True,
+                'title': r.get('title', ''),
+                'text': r.get('text', '')[:3000],
+                'highlights': r.get('highlights', [])
+            }
+        return {'url': url, 'success': False, 'error': 'No content returned'}
+
+    except Exception as e:
+        print(f"Exa crawl error: {str(e)}")
+        return {'url': url, 'success': False, 'error': str(e)}
+
+
+def decimal_to_native(obj):
+    """Convert DynamoDB Decimal types back to int/float for JSON serialization."""
+    if isinstance(obj, Decimal):
+        return int(obj) if obj == int(obj) else float(obj)
+    if isinstance(obj, dict):
+        return {k: decimal_to_native(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [decimal_to_native(i) for i in obj]
+    return obj
+
+
 def load_conversation_history(user_id: str) -> List[Dict]:
-    """Load conversation history from DynamoDB"""
+    """Load conversation history from DynamoDB, stored as JSON string to avoid Decimal issues."""
     table = dynamodb.Table('studentpathos-conversations')
 
     try:
@@ -410,25 +479,28 @@ def load_conversation_history(user_id: str) -> List[Dict]:
         )
 
         if 'Item' in response:
-            return response['Item'].get('messages', [])
-    except:
-        pass
+            raw = response['Item'].get('messages_json')
+            if raw:
+                return json.loads(raw)
+            messages = response['Item'].get('messages', [])
+            return decimal_to_native(messages)
+    except Exception as e:
+        print(f"Error loading history: {str(e)}")
 
     return []
 
 
 def save_conversation_history(user_id: str, messages: List[Dict]):
-    """Save conversation history to DynamoDB"""
+    """Save conversation history to DynamoDB as JSON string for clean round-trips."""
     table = dynamodb.Table('studentpathos-conversations')
 
-    # Keep only last 20 messages to avoid context limits
     if len(messages) > 20:
         messages = messages[-20:]
 
     table.put_item(Item={
         'user_id': user_id,
         'conversation_id': 'active',
-        'messages': messages,
+        'messages_json': json.dumps(messages, default=str),
         'updated_at': datetime.now().isoformat(),
         'created_at': datetime.now().isoformat()
     })

@@ -28,7 +28,17 @@ interface Message {
   timestamp: string;
 }
 
+const getSessionUserId = () => {
+  let id = sessionStorage.getItem('studentpathos_user_id');
+  if (!id) {
+    id = 'user-' + Math.random().toString(36).substring(2, 10);
+    sessionStorage.setItem('studentpathos_user_id', id);
+  }
+  return id;
+};
+
 export function ChatInterface() {
+  const [sessionUserId] = useState(getSessionUserId);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -109,16 +119,15 @@ export function ChatInterface() {
     setIsTyping(true);
 
     try {
-      // Call REAL Bedrock Agent with context awareness!
-      const API_URL = (import.meta as any).env?.VITE_API_URL || 'https://iqs70qndul.execute-api.us-east-1.amazonaws.com/prod';
+      const AGENT_URL = 'https://5mqa5kpgdwepn7seoig4k4po5a0rnnfo.lambda-url.us-east-1.on.aws/';
 
-      const response = await fetch(`${API_URL}/agent/chat`, {
+      const response = await fetch(AGENT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: 'demo-user-' + Math.random().toString(36).substring(7),
+          user_id: sessionUserId,
           message: currentInput
         })
       });

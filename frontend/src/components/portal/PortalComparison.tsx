@@ -97,15 +97,73 @@ export function PortalComparison() {
           summary += ` Detected text: ${texts}.`;
         }
 
-        const tips: Record<string, string> = {
-          'AWS Builder Center': ' This is the community hub -- great for finding student groups, hackathons, and claiming student rewards.',
-          'AWS Skill Builder': ' This is the training platform -- browse courses, hands-on labs, and certification prep here.',
-          'AWS Management Console': ' This is where you build. You can launch services like EC2, S3, Lambda, and more from here.',
-          'AWS Documentation': ' This is the AWS docs site -- reference guides, tutorials, and API docs for all AWS services.',
-          'AWS Sign-in Page': ' You are at the sign-in page. Use your AWS account credentials to log in.',
-          'Chat / Messaging Interface': ' This looks like a chat or messaging app, not an AWS portal.'
+        const guides: Record<string, { what: string; steps: string[]; link?: string }> = {
+          'AWS Builder Center': {
+            what: 'This is the community hub for AWS students.',
+            steps: [
+              'Create your Builder profile if you haven\'t already',
+              'Go to Student Rewards to verify your student status and claim Skill Builder Premium',
+              'Browse upcoming hackathons and events you can join',
+              'Find your university\'s Student Builder Group'
+            ],
+            link: 'https://builder.aws.com/student-rewards'
+          },
+          'AWS Skill Builder': {
+            what: 'This is the training platform with courses, labs, and certification prep.',
+            steps: [
+              'Check your subscription status -- students get Premium free through Student Rewards',
+              'Start with a Learning Path for your goal (e.g. Cloud Practitioner certification)',
+              'Try a hands-on lab to get real AWS experience without worrying about costs',
+              'Use exam prep courses if you\'re planning to take an AWS certification'
+            ],
+            link: 'https://billing.skillbuilder.aws/subscriptions'
+          },
+          'AWS Management Console': {
+            what: 'This is where you actually build and manage AWS resources.',
+            steps: [
+              'Use the search bar at top to find any AWS service (try "S3" or "Lambda")',
+              'Check the Billing Dashboard to monitor your credit usage',
+              'Try launching a simple service like S3 bucket or Lambda function to get started',
+              'Pin your most-used services to the favorites bar for quick access'
+            ],
+            link: 'https://console.aws.amazon.com'
+          },
+          'AWS Documentation': {
+            what: 'This is the AWS docs site with reference guides, tutorials, and API docs.',
+            steps: [
+              'Use "Search in this guide" for specific topics within the current service docs',
+              'Check "Get Started" in the top nav for beginner-friendly tutorials',
+              'Look for "Hands-on tutorials" sections which walk you through real examples',
+              'Bookmark the User Guide for services you use often'
+            ],
+            link: 'https://docs.aws.amazon.com'
+          },
+          'AWS Sign-in Page': {
+            what: 'You are at the AWS sign-in page.',
+            steps: [
+              'Use "Root user" if this is your personal AWS account',
+              'Use "IAM user" if your organization gave you credentials',
+              'If you don\'t have an account yet, go to builder.aws.com first to sign up as a student',
+              'Forgot your password? Use the reset link -- don\'t create a new account'
+            ]
+          },
+          'Chat / Messaging Interface': {
+            what: 'This is a chat or messaging app, not an AWS portal.',
+            steps: [
+              'If you meant to upload an AWS portal screenshot, try again with a screenshot of the actual portal page'
+            ]
+          }
         };
-        summary += tips[portal] || '';
+
+        const guide = guides[portal];
+        if (guide) {
+          summary += ` ${guide.what}`;
+          summary += '\n\nWhat you can do here:\n';
+          summary += guide.steps.map((s, i) => `${i + 1}. ${s}`).join('\n');
+          if (guide.link) {
+            summary += `\n\nDirect link: ${guide.link}`;
+          }
+        }
 
         setAnalysisResult(summary);
       } catch (err) {
@@ -169,7 +227,7 @@ export function PortalComparison() {
                     <span>Analyzing with Amazon Rekognition...</span>
                   </div>
                 ) : (
-                  <p className="text-gray-700">{analysisResult}</p>
+                  <p className="text-gray-700 whitespace-pre-line text-sm leading-relaxed">{analysisResult}</p>
                 )}
               </div>
             </div>

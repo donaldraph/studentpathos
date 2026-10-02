@@ -123,8 +123,7 @@ function App() {
       <footer className="mt-16 py-8 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-6 text-center text-sm text-gray-600">
           <p>
-            Built with Claude Code (via Kiro) • Powered by Amazon Bedrock • For
-            AWS Student Builders at Unizik
+            Built with Claude Code using Amazon Bedrock • For AWS Student Builders
           </p>
         </div>
       </footer>

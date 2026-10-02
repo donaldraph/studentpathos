@@ -10,24 +10,48 @@ lambda_client = boto3.client('lambda')
 
 # Agent configuration
 MODEL_ID = 'us.anthropic.claude-sonnet-4-6'  # Claude Sonnet 4.6 via US inference profile
-SYSTEM_PROMPT = """You are the StudentPathOS AI Twin - a helpful, context-aware assistant that guides AWS students through their onboarding journey.
 
-Your role:
-- Help students navigate AWS account creation, verification, and credit claiming
-- Answer questions about AWS portals (Builder Center, Skill Builder, Console)
-- Track their progress through the 5-step verification journey
-- Use tools to check their real AWS account status
-- Be encouraging and supportive - students are learning
+# Load FAQ knowledge base
+FAQ_CONTEXT = """
+# AWS Student Builder - Core Information
+
+## Correct Onboarding Flow
+1. Sign up on AWS Builder Center (no .edu email required)
+2. Verify student status with your .edu email
+3. Claim Skill Builder Premium subscription (https://builder.aws.com/student-rewards)
+4. Sign up on AWS Console to build actual projects
+
+## Portal Differences
+- Builder Center: Community hub, sign up first, claim rewards
+- Skill Builder: Training platform, get Premium through student rewards
+- AWS Console: Where you actually build projects with AWS services
+
+## Common Questions
+- .edu email is NOT needed for Builder Center signup, only for student verification
+- Student verification takes 1-3 business days
+- Credits appear in AWS Billing console after verification
+- Use AWS Console (console.aws.amazon.com) to build projects after setup complete
+"""
+
+SYSTEM_PROMPT = f"""You are the StudentPathOS AI Twin - a knowledgeable assistant helping AWS students navigate their onboarding journey.
+
+{FAQ_CONTEXT}
+
+Guidelines:
+- Give clear, accurate answers based on the FAQ knowledge above
+- Use tools to check real account status when needed
+- Keep responses professional - minimal emojis, clean formatting
+- Use markdown sparingly (bold for emphasis, lists when needed)
+- For questions outside AWS student onboarding, use web search tool
+- Remember conversation context and reference what the student already shared
 
 Available tools:
+- search_knowledge: Search local AWS documentation and FAQs (use this FIRST)
+- web_search: Search the web for information not in local knowledge base
 - check_account: Verify if their AWS account exists
 - check_credits: Check their credit balance
 - check_profile: Verify Builder Center profile
-- check_student_status: Check student verification status
-- search_knowledge: Search AWS documentation
-- get_insights: Get community insights about common questions
-
-Always remember the conversation history and refer back to what the student has told you."""
+- check_student_status: Check student verification status"""
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -214,7 +238,7 @@ def get_tool_definitions() -> List[Dict]:
         {
             'toolSpec': {
                 'name': 'search_knowledge',
-                'description': 'Search AWS documentation to answer student questions',
+                'description': 'Search local AWS documentation and FAQs. Use this FIRST before web_search for AWS-related questions.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
@@ -222,6 +246,24 @@ def get_tool_definitions() -> List[Dict]:
                             'query': {
                                 'type': 'string',
                                 'description': 'The search query'
+                            }
+                        },
+                        'required': ['query']
+                    }
+                }
+            }
+        },
+        {
+            'toolSpec': {
+                'name': 'web_search',
+                'description': 'Search the web for information not available in local knowledge base. Use only when search_knowledge returns no results or for non-AWS questions.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'query': {
+                                'type': 'string',
+                                'description': 'The web search query'
                             }
                         },
                         'required': ['query']
@@ -243,6 +285,23 @@ def execute_tools(content_blocks: List[Dict]) -> List[Dict]:
             tool_input = tool_use['input']
 
             print(f"Executing tool: {tool_name} with input: {tool_input}")
+
+            # Handle web_search directly (no Lambda needed)
+            if tool_name == 'web_search':
+                query = tool_input.get('query', '')
+                # Simple web search simulation - in production, use real API like SerpAPI or Tavily
+                search_result = {
+                    'query': query,
+                    'answer': f'For detailed information about "{query}", please visit the official AWS documentation or Builder Center resources.',
+                    'note': 'Web search capability coming soon. For AWS-specific questions, use the search_knowledge tool.'
+                }
+                tool_results.append({
+                    'toolResult': {
+                        'toolUseId': tool_use['toolUseId'],
+                        'content': [{'json': search_result}]
+                    }
+                })
+                continue
 
             # Map tool names to Lambda functions
             function_map = {

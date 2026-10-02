@@ -119,7 +119,7 @@ export function ChatInterface() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">Your AI Twin</h3>
-            <p className="text-xs text-blue-100">Online • Powered by Claude</p>
+            <p className="text-xs text-blue-100">Online • Powered by Bedrock</p>
           </div>
         </div>
       </div>
@@ -216,7 +216,7 @@ export function ChatInterface() {
           </motion.button>
         </div>
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Powered by Amazon Bedrock • Claude 3.5 Sonnet
+          Powered by Amazon Bedrock • Claude Sonnet 4.6
         </p>
       </div>
     </div>

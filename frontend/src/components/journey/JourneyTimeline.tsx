@@ -17,41 +17,41 @@ export function JourneyTimeline() {
   const steps: Step[] = [
     {
       id: 1,
-      title: 'Create AWS Account',
-      description: 'Sign up with your .edu email',
-      completed: journey?.account_exists || false,
+      title: 'Sign Up on AWS Builder Center',
+      description: 'Create your Builder profile (no .edu email required yet)',
+      completed: journey?.builder_profile_created || false,
       current: journey?.current_step === 1,
       estimatedTime: '3 min'
     },
     {
       id: 2,
-      title: 'Verify Student Email',
-      description: 'Check your inbox and confirm',
-      completed: journey?.edu_email_verified || false,
+      title: 'Verify Student Status',
+      description: 'Connect your .edu email to verify student identity',
+      completed: journey?.student_verified || false,
       current: journey?.current_step === 2,
-      estimatedTime: '2 min'
-    },
-    {
-      id: 3,
-      title: 'Create Builder Profile',
-      description: 'Complete your Builder Center profile',
-      completed: journey?.profile_exists || false,
-      current: journey?.current_step === 3,
       estimatedTime: '5 min'
     },
     {
-      id: 4,
-      title: 'Claim AWS Credits',
-      description: 'Get your $100 promotional credits',
-      completed: journey?.has_credits || false,
-      current: journey?.current_step === 4,
+      id: 3,
+      title: 'Claim Skill Builder Premium',
+      description: 'Get free access to AWS Skill Builder courses',
+      completed: journey?.skillbuilder_claimed || false,
+      current: journey?.current_step === 3,
       estimatedTime: '2 min'
     },
     {
+      id: 4,
+      title: 'Sign Up on AWS Console',
+      description: 'Create your AWS account to build real projects',
+      completed: journey?.console_account_created || false,
+      current: journey?.current_step === 4,
+      estimatedTime: '5 min'
+    },
+    {
       id: 5,
-      title: 'Fully Verified',
-      description: 'Start building amazing things!',
-      completed: journey?.verified || false,
+      title: 'Ready to Build!',
+      description: 'All set! Start building with AWS services',
+      completed: journey?.fully_onboarded || false,
       current: journey?.current_step === 5,
       estimatedTime: '1 min'
     }

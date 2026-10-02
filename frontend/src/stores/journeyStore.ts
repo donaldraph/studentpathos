@@ -3,14 +3,21 @@ import { apiClient } from '../services/api';
 
 interface Journey {
   user_id: string;
-  account_exists: boolean;
-  edu_email_verified: boolean;
-  profile_exists: boolean;
-  has_credits: boolean;
-  verified: boolean;
+  // New journey fields matching correct AWS Builder flow
+  builder_profile_created: boolean;
+  student_verified: boolean;
+  skillbuilder_claimed: boolean;
+  console_account_created: boolean;
+  fully_onboarded: boolean;
   current_step: number;
   verification_status: string;
   updated_at: string;
+  // Legacy fields for backward compatibility
+  account_exists?: boolean;
+  edu_email_verified?: boolean;
+  profile_exists?: boolean;
+  has_credits?: boolean;
+  verified?: boolean;
 }
 
 interface JourneyState {
@@ -73,19 +80,19 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       const { verification_results } = response.data;
 
       const updates: Partial<Journey> = {
-        account_exists: verification_results.account?.body?.account_exists || false,
-        edu_email_verified: verification_results.student_status?.body?.edu_email_verified || false,
-        profile_exists: verification_results.profile?.body?.profile_exists || false,
-        has_credits: verification_results.credits?.body?.has_credits || false,
-        verified: verification_results.student_status?.body?.verified || false
+        builder_profile_created: verification_results.builder_profile?.body?.created || false,
+        student_verified: verification_results.student_status?.body?.verified || false,
+        skillbuilder_claimed: verification_results.skillbuilder?.body?.claimed || false,
+        console_account_created: verification_results.console_account?.body?.exists || false,
+        fully_onboarded: verification_results.student_status?.body?.fully_onboarded || false
       };
 
       // Determine current step (first incomplete)
-      if (!updates.account_exists) updates.current_step = 1;
-      else if (!updates.edu_email_verified) updates.current_step = 2;
-      else if (!updates.profile_exists) updates.current_step = 3;
-      else if (!updates.has_credits) updates.current_step = 4;
-      else if (!updates.verified) updates.current_step = 5;
+      if (!updates.builder_profile_created) updates.current_step = 1;
+      else if (!updates.student_verified) updates.current_step = 2;
+      else if (!updates.skillbuilder_claimed) updates.current_step = 3;
+      else if (!updates.console_account_created) updates.current_step = 4;
+      else if (!updates.fully_onboarded) updates.current_step = 5;
       else updates.current_step = 5; // All complete
 
       set({

@@ -119,9 +119,9 @@ export function ChatInterface() {
     setIsTyping(true);
 
     try {
-      const AGENT_URL = 'https://5mqa5kpgdwepn7seoig4k4po5a0rnnfo.lambda-url.us-east-1.on.aws/';
+      const API_URL = 'https://iqs70qndul.execute-api.us-east-1.amazonaws.com/prod';
 
-      const response = await fetch(AGENT_URL, {
+      const response = await fetch(`${API_URL}/agent/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

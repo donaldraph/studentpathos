@@ -9,7 +9,7 @@ dynamodb = boto3.resource('dynamodb')
 lambda_client = boto3.client('lambda')
 
 # Agent configuration
-MODEL_ID = 'anthropic.claude-sonnet-4-6'  # Claude Sonnet 4.6 - Latest!
+MODEL_ID = 'us.anthropic.claude-sonnet-4-6'  # Claude Sonnet 4.6 via US inference profile
 SYSTEM_PROMPT = """You are the StudentPathOS AI Twin - a helpful, context-aware assistant that guides AWS students through their onboarding journey.
 
 Your role:
@@ -69,8 +69,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             },
             inferenceConfig={
                 'maxTokens': 2048,
-                'temperature': 0.7,
-                'topP': 0.9
+                'temperature': 0.7
             }
         )
 

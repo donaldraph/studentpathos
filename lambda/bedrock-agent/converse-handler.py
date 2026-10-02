@@ -345,67 +345,58 @@ def execute_tools(content_blocks: List[Dict]) -> List[Dict]:
 
 
 def do_web_search(query: str) -> Dict[str, Any]:
-    """Search the web using DuckDuckGo HTML and parse results."""
+    """Search the web using Exa AI -- same search engine from the BeSA workshop."""
+    exa_key = os.environ.get('EXA_API_KEY', '')
+    if not exa_key:
+        return {'query': query, 'found': False, 'error': 'EXA_API_KEY not configured'}
+
     try:
-        encoded_query = urllib.parse.quote_plus(query)
-        url = f'https://html.duckduckgo.com/html/?q={encoded_query}'
+        payload = json.dumps({
+            'query': query,
+            'type': 'auto',
+            'numResults': 5,
+            'contents': {
+                'highlights': True,
+                'text': {'maxCharacters': 500}
+            }
+        }).encode('utf-8')
 
-        req = urllib.request.Request(url, headers={
-            'User-Agent': 'Mozilla/5.0 (compatible; StudentPathOS/1.0)'
-        })
+        req = urllib.request.Request(
+            'https://api.exa.ai/search',
+            data=payload,
+            headers={
+                'x-api-key': exa_key,
+                'Content-Type': 'application/json'
+            },
+            method='POST'
+        )
 
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            html = resp.read().decode('utf-8', errors='ignore')
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
 
         results = []
-        # Parse result snippets from DuckDuckGo HTML
-        snippets = re.findall(
-            r'<a rel="nofollow" class="result__snippet"[^>]*>(.*?)</a>',
-            html, re.DOTALL
-        )
-        titles = re.findall(
-            r'<a rel="nofollow" class="result__a"[^>]*>(.*?)</a>',
-            html, re.DOTALL
-        )
-        links = re.findall(
-            r'<a rel="nofollow" class="result__a" href="([^"]*)"',
-            html
-        )
+        for r in data.get('results', []):
+            results.append({
+                'title': r.get('title', ''),
+                'url': r.get('url', ''),
+                'highlights': r.get('highlights', []),
+                'text': r.get('text', '')[:500] if r.get('text') else ''
+            })
 
-        for i in range(min(5, len(snippets))):
-            clean_snippet = re.sub(r'<[^>]+>', '', snippets[i]).strip()
-            clean_title = re.sub(r'<[^>]+>', '', titles[i]).strip() if i < len(titles) else ''
-            link = links[i] if i < len(links) else ''
-            if clean_snippet:
-                results.append({
-                    'title': clean_title,
-                    'snippet': clean_snippet,
-                    'url': link
-                })
-
-        if results:
-            return {
-                'query': query,
-                'found': True,
-                'result_count': len(results),
-                'results': results
-            }
-        else:
-            return {
-                'query': query,
-                'found': False,
-                'result_count': 0,
-                'results': [],
-                'note': 'No results found for this query'
-            }
+        return {
+            'query': query,
+            'found': len(results) > 0,
+            'result_count': len(results),
+            'results': results
+        }
 
     except Exception as e:
-        print(f"Web search error: {str(e)}")
+        print(f"Exa search error: {str(e)}")
         return {
             'query': query,
             'found': False,
             'error': str(e),
-            'note': 'Web search failed - answer based on your own knowledge and be transparent about what you do and do not know'
+            'note': 'Web search failed - answer from your own knowledge and be transparent about what you do and do not know'
         }
 
 

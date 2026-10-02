@@ -25,33 +25,39 @@ export function CommunityInsights() {
     setIsLoading(true);
     try {
       const response = await twinApi.getCommunityInsights('7d');
-      setInsights(response.data);
+      const data = response.data?.body ? JSON.parse(response.data.body) : response.data;
+      setInsights(data);
     } catch (error) {
-      console.error('Failed to fetch insights:', error);
-      // Mock data for demo
+      console.error('Failed to fetch insights from API, loading from conversations:', error);
+      // Query real conversation count from agent endpoint
+      try {
+        const API_URL = 'https://iqs70qndul.execute-api.us-east-1.amazonaws.com/prod';
+        const resp = await fetch(`${API_URL}/twin/insights`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ time_period: '7d' })
+        });
+        if (resp.ok) {
+          const raw = await resp.json();
+          const data = raw?.body ? JSON.parse(raw.body) : raw;
+          setInsights(data);
+          return;
+        }
+      } catch (e) {
+        console.error('Direct fetch also failed:', e);
+      }
+      // Last resort: show zeros with honest messaging
       setInsights({
-        total_students: 247,
-        total_conversations: 1843,
-        total_questions: 4521,
-        avg_questions_per_student: 18.3,
-        trending_topics: [
-          { topic: 'credits', count: 892 },
-          { topic: 'verification', count: 673 },
-          { topic: 'builder center', count: 521 },
-          { topic: 'profile', count: 387 },
-          { topic: 'console', count: 245 }
-        ],
+        total_students: 0,
+        total_conversations: 0,
+        total_questions: 0,
+        avg_questions_per_student: 0,
+        trending_topics: [],
         confusion_points: [
-          'What\'s the difference between Builder Center and Skill Builder?',
-          'How long does verification take?',
-          'Where do I claim my credits?',
-          'My verification is pending - what should I do?',
-          'Which portal do I use to start building?'
+          'Analytics will populate as students use the AI Twin chat'
         ],
         recommendations_for_aws: [
-          'Create visual comparison guide for Builder Center vs Skill Builder',
-          'Add progress tracker to verification process',
-          'Simplify credit claiming flow - too many steps'
+          'Start chatting with the AI Twin to generate real analytics data'
         ]
       });
     } finally {
@@ -75,7 +81,7 @@ export function CommunityInsights() {
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Community Insights</h2>
         <p className="text-gray-600">
-          What AWS students at Unizik are asking about (last 7 days)
+          What AWS Student Builders are asking about (last 7 days)
         </p>
       </div>
 
@@ -233,9 +239,9 @@ export function CommunityInsights() {
         className="mt-6 p-6 bg-green-50 border-2 border-green-200 rounded-xl text-center"
       >
         <p className="text-gray-700">
-          <strong className="text-green-700">StudentPathOS Impact:</strong> With AI guidance, we've reduced
-          average onboarding time from <strong>3 hours to 18 minutes</strong> and increased credit claim
-          rate from <strong>60% to 94%</strong> in the Unizik student community.
+          <strong className="text-green-700">StudentPathOS Impact:</strong> AI-guided onboarding helps
+          students navigate the AWS Builder Center, Skill Builder, and Console setup faster.
+          Analytics update in real-time as students interact with the AI Twin.
         </p>
       </motion.div>
     </div>

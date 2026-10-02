@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://api.studentpathos.com';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://iqs70qndul.execute-api.us-east-1.amazonaws.com/prod';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

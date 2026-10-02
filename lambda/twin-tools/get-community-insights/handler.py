@@ -29,12 +29,18 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             messages = item.get('messages', [])
             for msg in messages:
                 if msg.get('role') == 'user':
-                    content = msg.get('content', '').lower()
-                    all_questions.append(content)
+                    # Handle Bedrock Converse API format: content is [{text: "..."}]
+                    raw_content = msg.get('content', '')
+                    if isinstance(raw_content, list):
+                        content = ' '.join(block.get('text', '') for block in raw_content if isinstance(block, dict)).lower()
+                    else:
+                        content = str(raw_content).lower()
 
-                    # Detect confusion signals
-                    if any(word in content for word in ['confused', 'where', 'which', 'difference', 'help']):
-                        confusion_points.append(content[:100])
+                    if content.strip():
+                        all_questions.append(content)
+
+                        if any(word in content for word in ['confused', 'where', 'which', 'difference', 'help', '?']):
+                            confusion_points.append(content[:100])
 
         # Identify common topics
         topics = Counter()

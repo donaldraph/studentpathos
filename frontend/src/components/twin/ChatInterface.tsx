@@ -12,7 +12,7 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hey! I\'m your AI twin. I\'ll help you get AWS-verified fast. Where are you stuck?',
+      content: 'Hi! I\'m your AI twin for AWS Student Builder onboarding. Ask me anything about getting started with AWS, the student program, or navigating the different portals!',
       timestamp: new Date().toISOString()
     }
   ]);
@@ -57,11 +57,15 @@ export function ChatInterface() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
 
       const aiResponse: Message = {
         role: 'assistant',
-        content: data.response || 'Sorry, I had trouble understanding that. Can you rephrase?',
+        content: data.response || 'I received your message but had trouble generating a response. Please try again.',
         timestamp: new Date().toISOString()
       };
 
@@ -69,10 +73,10 @@ export function ChatInterface() {
     } catch (error) {
       console.error('Agent error:', error);
 
-      // Fallback response if agent fails
+      // Show actual error - no fallback to mock responses
       const errorResponse: Message = {
         role: 'assistant',
-        content: 'Sorry, I\'m having trouble connecting right now. Let me give you a quick answer: ' + getMockResponse(currentInput),
+        content: 'I\'m having trouble connecting to my AI brain right now. Please try again in a moment. If the issue persists, let me know!',
         timestamp: new Date().toISOString()
       };
 
@@ -82,27 +86,6 @@ export function ChatInterface() {
     }
   };
 
-  const getMockResponse = (query: string): string => {
-    const lower = query.toLowerCase();
-
-    if (lower.includes('aws')) {
-      return 'AWS stands for Amazon Web Services - it\'s Amazon\'s cloud computing platform. For students, you get $100 in free credits to build projects!';
-    }
-
-    if (lower.includes('credit') || lower.includes('$100')) {
-      return 'To claim your $100 AWS credits: 1) Sign in to AWS Console 2) Go to Billing → Credits 3) Enter promo code from your student email. Takes about 2 minutes!';
-    }
-
-    if (lower.includes('builder center') || lower.includes('skill builder')) {
-      return 'Builder Center is for community events/hackathons. Skill Builder is for courses/labs. Console is where you actually build. They\'re different portals!';
-    }
-
-    if (lower.includes('verif')) {
-      return 'Student verification usually takes 12-24 hours. Check your .edu inbox for the confirmation email.';
-    }
-
-    return 'I can help you with AWS student onboarding! Ask me about credits, verification, or which portal to use.';
-  };
 
   return (
     <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-lg border border-gray-200">

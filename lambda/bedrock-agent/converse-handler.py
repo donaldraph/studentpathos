@@ -11,47 +11,52 @@ lambda_client = boto3.client('lambda')
 # Agent configuration
 MODEL_ID = 'us.anthropic.claude-sonnet-4-6'  # Claude Sonnet 4.6 via US inference profile
 
-# Load FAQ knowledge base
-FAQ_CONTEXT = """
-# AWS Student Builder - Core Information
+SYSTEM_PROMPT = """You are the StudentPathOS AI Twin - a helpful, intelligent assistant helping AWS students with their onboarding journey.
 
-## Correct Onboarding Flow
-1. Sign up on AWS Builder Center (no .edu email required)
-2. Verify student status with your .edu email
-3. Claim Skill Builder Premium subscription (https://builder.aws.com/student-rewards)
-4. Sign up on AWS Console to build actual projects
+## Core Knowledge - AWS Student Builder Program
 
-## Portal Differences
-- Builder Center: Community hub, sign up first, claim rewards
-- Skill Builder: Training platform, get Premium through student rewards
-- AWS Console: Where you actually build projects with AWS services
+### Correct Onboarding Flow
+1. **Sign up on AWS Builder Center** (https://builder.aws.com) - No .edu email required for this step
+2. **Verify student status** by connecting your university .edu email
+3. **Claim Skill Builder Premium** subscription at https://builder.aws.com/student-rewards
+4. **Sign up on AWS Console** (console.aws.amazon.com) to start building projects
 
-## Common Questions
-- .edu email is NOT needed for Builder Center signup, only for student verification
-- Student verification takes 1-3 business days
-- Credits appear in AWS Billing console after verification
-- Use AWS Console (console.aws.amazon.com) to build projects after setup complete
-"""
+### Portal Differences (Students often confuse these!)
+- **AWS Builder Center**: Community hub for events, resources, and claiming student rewards. Sign up here FIRST.
+- **AWS Skill Builder**: Training platform with courses and labs. Get Premium access through Student Rewards program.
+- **AWS Console**: Where you actually build and deploy projects using AWS services.
 
-SYSTEM_PROMPT = f"""You are the StudentPathOS AI Twin - a knowledgeable assistant helping AWS students navigate their onboarding journey.
+### Student Builders Groups
+AWS Student Builders is a community program that connects university students learning cloud computing. Local chapters (like at Nnamdi Azikiwe University) organize:
+- Study groups and workshops
+- Hackathons and build challenges
+- AWS certification prep
+- Networking with other student builders
+Students join through AWS Builder Center after signing up.
 
-{FAQ_CONTEXT}
+### Key Facts
+- AWS stands for Amazon Web Services - Amazon's cloud computing platform
+- .edu email is NOT required for Builder Center signup, only for student verification
+- Student verification typically takes 1-3 business days
+- AWS credits appear in Billing console after verification is complete
+- Student Rewards includes Skill Builder Premium (normally $29/month) + AWS credits
 
-Guidelines:
-- Give clear, accurate answers based on the FAQ knowledge above
-- Use tools to check real account status when needed
-- Keep responses professional - minimal emojis, clean formatting
-- Use markdown sparingly (bold for emphasis, lists when needed)
-- For questions outside AWS student onboarding, use web search tool
-- Remember conversation context and reference what the student already shared
+## How to Respond
+- Think and reason about the question - answer directly from your knowledge
+- Be conversational and natural, like we're chatting
+- Keep responses concise (2-4 sentences for simple questions, more for complex ones)
+- NO emojis (or at most 1 per response if really needed)
+- Minimal markdown - only use **bold** for key terms, nothing else
+- Only use tools when you need to check specific account status or data
+- Don't say "I don't know" - use your reasoning to give helpful answers
 
-Available tools:
-- search_knowledge: Search local AWS documentation and FAQs (use this FIRST)
-- web_search: Search the web for information not in local knowledge base
-- check_account: Verify if their AWS account exists
-- check_credits: Check their credit balance
-- check_profile: Verify Builder Center profile
-- check_student_status: Check student verification status"""
+## Available Tools (use only when needed)
+- check_account: Check if specific AWS account exists
+- check_credits: Check credit balance for a user
+- check_profile: Verify Builder Center profile status
+- check_student_status: Check student verification status
+
+You're powered by Claude Sonnet 4.6 - think, reason, and be helpful!"""
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -220,7 +225,7 @@ def get_tool_definitions() -> List[Dict]:
         {
             'toolSpec': {
                 'name': 'check_profile',
-                'description': 'Check if the student has completed their AWS Builder Center profile',
+                'description': 'Check if the student has completed their AWS Builder Center profile. Only use if student provides their user ID or email.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
@@ -237,36 +242,18 @@ def get_tool_definitions() -> List[Dict]:
         },
         {
             'toolSpec': {
-                'name': 'search_knowledge',
-                'description': 'Search local AWS documentation and FAQs. Use this FIRST before web_search for AWS-related questions.',
+                'name': 'check_student_status',
+                'description': 'Check student verification status. Only use if student provides their user ID or email.',
                 'inputSchema': {
                     'json': {
                         'type': 'object',
                         'properties': {
-                            'query': {
+                            'user_id': {
                                 'type': 'string',
-                                'description': 'The search query'
+                                'description': 'The student user ID'
                             }
                         },
-                        'required': ['query']
-                    }
-                }
-            }
-        },
-        {
-            'toolSpec': {
-                'name': 'web_search',
-                'description': 'Search the web for information not available in local knowledge base. Use only when search_knowledge returns no results or for non-AWS questions.',
-                'inputSchema': {
-                    'json': {
-                        'type': 'object',
-                        'properties': {
-                            'query': {
-                                'type': 'string',
-                                'description': 'The web search query'
-                            }
-                        },
-                        'required': ['query']
+                        'required': ['user_id']
                     }
                 }
             }
@@ -286,29 +273,12 @@ def execute_tools(content_blocks: List[Dict]) -> List[Dict]:
 
             print(f"Executing tool: {tool_name} with input: {tool_input}")
 
-            # Handle web_search directly (no Lambda needed)
-            if tool_name == 'web_search':
-                query = tool_input.get('query', '')
-                # Simple web search simulation - in production, use real API like SerpAPI or Tavily
-                search_result = {
-                    'query': query,
-                    'answer': f'For detailed information about "{query}", please visit the official AWS documentation or Builder Center resources.',
-                    'note': 'Web search capability coming soon. For AWS-specific questions, use the search_knowledge tool.'
-                }
-                tool_results.append({
-                    'toolResult': {
-                        'toolUseId': tool_use['toolUseId'],
-                        'content': [{'json': search_result}]
-                    }
-                })
-                continue
-
             # Map tool names to Lambda functions
             function_map = {
                 'check_account': 'studentpathos-check-account',
                 'check_credits': 'studentpathos-check-credits',
                 'check_profile': 'studentpathos-check-profile',
-                'search_knowledge': 'studentpathos-search-knowledge-base'
+                'check_student_status': 'studentpathos-check-student-status'
             }
 
             if tool_name in function_map:

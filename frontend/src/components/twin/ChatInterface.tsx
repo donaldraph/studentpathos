@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -144,7 +145,9 @@ export function ChatInterface() {
                     : 'bg-gray-100 text-gray-800'
                 }`}
               >
-                <p className="text-sm leading-relaxed">{message.content}</p>
+                <div className="text-sm leading-relaxed prose prose-sm max-w-none [&>p]:m-0 [&>p+p]:mt-2 [&>ul]:mt-1 [&>ol]:mt-1 [&>ul]:mb-0 [&>ol]:mb-0">
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                </div>
                 <span className="text-xs opacity-70 mt-1 block">
                   {new Date(message.timestamp).toLocaleTimeString([], {
                     hour: '2-digit',

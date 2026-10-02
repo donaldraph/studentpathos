@@ -1,6 +1,9 @@
 import json
 import boto3
 import os
+import urllib.request
+import urllib.parse
+import re
 from typing import Dict, Any, List
 from datetime import datetime
 
@@ -42,21 +45,23 @@ Students join through AWS Builder Center after signing up. Only mention specific
 - Student Rewards includes Skill Builder Premium (normally $29/month) + AWS credits
 
 ## How to Respond
-- Think and reason about the question - answer directly from your knowledge
-- Be conversational and natural, like we're chatting
+- Write plain text only. No markdown, no asterisks, no bullet dashes, no headers. Just natural sentences and paragraphs.
+- Be conversational and natural, like a real person chatting
 - Keep responses concise (2-4 sentences for simple questions, more for complex ones)
-- NO emojis (or at most 1 per response if really needed)
-- Minimal markdown - only use **bold** for key terms, nothing else
-- Only use tools when you need to check specific account status or data
-- Don't say "I don't know" - use your reasoning to give helpful answers
+- No emojis
+- If you need to list things, use numbered sentences or just write them naturally in prose
+- For questions you can answer from the knowledge above, just answer directly
+- For questions about specific things you don't know (like a specific university's chapter, current events, or anything outside your training), USE the web_search tool to look it up. Do NOT fabricate or guess.
+- If web_search returns no useful results, say honestly that you couldn't find specific info and suggest where they might look
 
-## Available Tools (use only when needed)
-- check_account: Check if specific AWS account exists
-- check_credits: Check credit balance for a user
-- check_profile: Verify Builder Center profile status
-- check_student_status: Check student verification status
+## Available Tools
+- web_search: Search the internet for information you don't have. USE THIS for any question about specific universities, current events, specific programs, or anything you're not 100% sure about.
+- check_account: Check if specific AWS account exists (only if student provides email)
+- check_credits: Check credit balance (only if student provides user ID)
+- check_profile: Verify Builder Center profile status (only if student provides user ID)
+- check_student_status: Check student verification status (only if student provides user ID)
 
-You're powered by Claude Sonnet 4.6 - think, reason, and be helpful!"""
+IMPORTANT: When you don't know something specific, SEARCH for it. Never make up information."""
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -257,6 +262,24 @@ def get_tool_definitions() -> List[Dict]:
                     }
                 }
             }
+        },
+        {
+            'toolSpec': {
+                'name': 'web_search',
+                'description': 'Search the internet for real, current information. Use this when asked about specific universities, organizations, events, people, or anything you are not certain about. Always prefer searching over guessing.',
+                'inputSchema': {
+                    'json': {
+                        'type': 'object',
+                        'properties': {
+                            'query': {
+                                'type': 'string',
+                                'description': 'The search query'
+                            }
+                        },
+                        'required': ['query']
+                    }
+                }
+            }
         }
     ]
 
@@ -272,6 +295,17 @@ def execute_tools(content_blocks: List[Dict]) -> List[Dict]:
             tool_input = tool_use['input']
 
             print(f"Executing tool: {tool_name} with input: {tool_input}")
+
+            # Handle web_search directly in this Lambda
+            if tool_name == 'web_search':
+                search_result = do_web_search(tool_input.get('query', ''))
+                tool_results.append({
+                    'toolResult': {
+                        'toolUseId': tool_use['toolUseId'],
+                        'content': [{'json': search_result}]
+                    }
+                })
+                continue
 
             # Map tool names to Lambda functions
             function_map = {
@@ -308,6 +342,71 @@ def execute_tools(content_blocks: List[Dict]) -> List[Dict]:
                     })
 
     return tool_results
+
+
+def do_web_search(query: str) -> Dict[str, Any]:
+    """Search the web using DuckDuckGo HTML and parse results."""
+    try:
+        encoded_query = urllib.parse.quote_plus(query)
+        url = f'https://html.duckduckgo.com/html/?q={encoded_query}'
+
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; StudentPathOS/1.0)'
+        })
+
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+
+        results = []
+        # Parse result snippets from DuckDuckGo HTML
+        snippets = re.findall(
+            r'<a rel="nofollow" class="result__snippet"[^>]*>(.*?)</a>',
+            html, re.DOTALL
+        )
+        titles = re.findall(
+            r'<a rel="nofollow" class="result__a"[^>]*>(.*?)</a>',
+            html, re.DOTALL
+        )
+        links = re.findall(
+            r'<a rel="nofollow" class="result__a" href="([^"]*)"',
+            html
+        )
+
+        for i in range(min(5, len(snippets))):
+            clean_snippet = re.sub(r'<[^>]+>', '', snippets[i]).strip()
+            clean_title = re.sub(r'<[^>]+>', '', titles[i]).strip() if i < len(titles) else ''
+            link = links[i] if i < len(links) else ''
+            if clean_snippet:
+                results.append({
+                    'title': clean_title,
+                    'snippet': clean_snippet,
+                    'url': link
+                })
+
+        if results:
+            return {
+                'query': query,
+                'found': True,
+                'result_count': len(results),
+                'results': results
+            }
+        else:
+            return {
+                'query': query,
+                'found': False,
+                'result_count': 0,
+                'results': [],
+                'note': 'No results found for this query'
+            }
+
+    except Exception as e:
+        print(f"Web search error: {str(e)}")
+        return {
+            'query': query,
+            'found': False,
+            'error': str(e),
+            'note': 'Web search failed - answer based on your own knowledge and be transparent about what you do and do not know'
+        }
 
 
 def load_conversation_history(user_id: str) -> List[Dict]:

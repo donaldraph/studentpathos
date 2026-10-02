@@ -95,10 +95,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             })
 
             # Get final response after tool execution
+            # toolConfig required because conversation now contains tool blocks
             final_response = bedrock.converse(
                 modelId=MODEL_ID,
                 messages=conversation_history,
                 system=[{'text': SYSTEM_PROMPT}],
+                toolConfig={
+                    'tools': get_tool_definitions()
+                },
                 inferenceConfig={
                     'maxTokens': 2048,
                     'temperature': 0.7

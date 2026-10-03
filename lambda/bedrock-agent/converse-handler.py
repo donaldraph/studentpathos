@@ -117,7 +117,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 messages=conversation_history,
                 system=[{'text': SYSTEM_PROMPT}],
                 toolConfig={'tools': get_tool_definitions()},
-                inferenceConfig={'maxTokens': 2048, 'temperature': 0.7}
+                inferenceConfig={'maxTokens': 2048, 'temperature': 0.7},
+                guardrailConfig={
+                    'guardrailIdentifier': 'zcftd8h0l4rr',
+                    'guardrailVersion': '2'
+                }
             )
 
             stop_reason = response['stopReason']
